@@ -19,9 +19,14 @@ public sealed class ProviderStatistics
             else if (success) counters.Successful++;
             else counters.Failed++;
 
-            if (elapsed.TotalMilliseconds < 500) counters.Fast++;
-            else if (elapsed.TotalMilliseconds < 2000) counters.Average++;
-            else counters.Slow++;
+            var bucket = elapsed.TotalMilliseconds switch
+            {
+                < 500 => counters.Fast,
+                < 2000 => counters.Average,
+                _ => counters.Slow
+            };
+            bucket.Count++;
+            bucket.TotalMilliseconds += elapsed.TotalMilliseconds;
         }
     }
 
@@ -34,14 +39,28 @@ public sealed class ProviderStatistics
             {
                 return new ProviderStatisticsDto(source, counters.Total, counters.Successful,
                     counters.Failed, counters.Cancelled,
-                    counters.Total == 0 ? 0 : Math.Round(counters.TotalMilliseconds / counters.Total, 2),
-                    counters.Fast, counters.Average, counters.Slow);
+                    Mean(counters.TotalMilliseconds, counters.Total),
+                    counters.Fast.Count, counters.Average.Count, counters.Slow.Count,
+                    counters.Fast.MeanMilliseconds, counters.Average.MeanMilliseconds, counters.Slow.MeanMilliseconds);
             }
         }).ToArray();
 
+    private static double Mean(double totalMilliseconds, long count) =>
+        count == 0 ? 0 : Math.Round(totalMilliseconds / count, 2);
+
+    private sealed class Bucket
+    {
+        public long Count;
+        public double TotalMilliseconds;
+        public double MeanMilliseconds => Mean(TotalMilliseconds, Count);
+    }
+
     private sealed class Counters
     {
-        public long Total, Successful, Failed, Cancelled, Fast, Average, Slow;
+        public long Total, Successful, Failed, Cancelled;
+        public Bucket Fast { get; } = new();
+        public Bucket Average { get; } = new();
+        public Bucket Slow { get; } = new();
         public double TotalMilliseconds;
     }
 }

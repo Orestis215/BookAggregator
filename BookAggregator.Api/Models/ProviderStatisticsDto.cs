@@ -9,4 +9,7 @@ public sealed record ProviderStatisticsDto(
     double AverageResponseTimeMs,
     long FastRequests,
     long AverageRequests,
-    long SlowRequests);
+    long SlowRequests,
+    double FastMeanResponseTimeMs,
+    double AverageMeanResponseTimeMs,
+    double SlowMeanResponseTimeMs);

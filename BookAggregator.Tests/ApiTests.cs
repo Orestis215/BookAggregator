@@ -2,6 +2,7 @@ using System.Net;
 using System.Net.Http.Json;
 using System.Text.Json;
 using BookAggregator.Api.Models;
+using BookAggregator.Api.Services;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.AspNetCore.TestHost;
@@ -13,6 +14,22 @@ namespace BookAggregator.Tests;
 
 public sealed class ApiTests
 {
+    [Fact]
+    public async Task StatisticsEndpointReturnsMeanDurationForEachBucket()
+    {
+        await using var factory = new TestApiFactory();
+        using var client = factory.CreateClient();
+        var statistics = factory.Services.GetRequiredService<ProviderStatistics>();
+        foreach (var elapsedMs in new[] { 25, 100, 600, 800, 2000, 3500 })
+            statistics.Record("OpenLibrary", TimeSpan.FromMilliseconds(elapsedMs), true);
+
+        var rows = await client.GetFromJsonAsync<JsonElement>("/api/statistics");
+        var row = Assert.Single(rows.EnumerateArray(), item => item.GetProperty("source").GetString() == "OpenLibrary");
+        Assert.Equal(62.5, row.GetProperty("fastMeanResponseTimeMs").GetDouble());
+        Assert.Equal(700, row.GetProperty("averageMeanResponseTimeMs").GetDouble());
+        Assert.Equal(2750, row.GetProperty("slowMeanResponseTimeMs").GetDouble());
+    }
+
     [Fact]
     public async Task RealPipelineAggregatesThreeProvidersAndCacheHitsDoNotIncreaseHttpStatistics()
     {

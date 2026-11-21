@@ -130,7 +130,10 @@ Cache/statistics are per-process, intentionally nonpersistent and not shared bet
     "averageResponseTimeMs": 750,
     "fastRequests": 1,
     "averageRequests": 2,
-    "slowRequests": 0
+    "slowRequests": 0,
+    "fastMeanResponseTimeMs": 250,
+    "averageMeanResponseTimeMs": 1000,
+    "slowMeanResponseTimeMs": 0
   }
 ]
 ```
@@ -140,7 +143,8 @@ Statistics count **completed outbound HTTP attempts**, including retries, HTTP f
 - Fast: duration `< 500 ms`.
 - Average: duration `>= 500 ms` and `< 2000 ms`.
 - Slow: duration `>= 2000 ms`.
-- Mean: sum of attempt durations / completed attempts, rounded to two decimals in milliseconds; zero before traffic.
+- Each bucket reports the mean duration of its own completed attempts in milliseconds, rounded to two decimals. An empty bucket reports 0.
+- `averageResponseTimeMs` averages all completed attempts for that provider, weighted by the number of attempts in each bucket. It reports 0 before traffic.
 
 For every snapshot, `totalRequests = successfulRequests + failedRequests + cancelledRequests = fastRequests + averageRequests + slowRequests`. A concurrent dictionary and a per-provider lock protect both updates and snapshots. Each provider row is internally consistent; the entire array is not a globally simultaneous snapshot. Counts reset on process restart.
 
