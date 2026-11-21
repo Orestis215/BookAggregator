@@ -1,5 +1,6 @@
 
 using System.Net.Http.Json;
+using System.Text.Json;
 using System.Text.Json.Serialization;
 using BookAggregator.Api.Models;
 
@@ -20,6 +21,7 @@ public sealed class OpenLibraryProvider : IBookProvider
         string query,
         CancellationToken cancellationToken)
     {
+        cancellationToken.ThrowIfCancellationRequested();
         var encodedQuery = Uri.EscapeDataString(query);
 
         var url =
@@ -31,25 +33,26 @@ public sealed class OpenLibraryProvider : IBookProvider
                 url,
                 cancellationToken);
 
-        if (response is null)
+        if (response?.Docs is null)
         {
-            throw new InvalidOperationException(
-                "Open Library returned an empty response.");
+            throw new JsonException("Open Library returned an invalid search response.");
         }
 
         return response.Docs
             .Where(book =>
-                !string.IsNullOrWhiteSpace(book.Key) &&
+                book is not null && !string.IsNullOrWhiteSpace(book.Key) &&
                 !string.IsNullOrWhiteSpace(book.Title))
             .Select(book => new BookDto
             {
                 Source = Name,
-                SourceId = book.Key!,
+                SourceId = book!.Key!,
                 Title = book.Title!,
-                Authors = book.AuthorNames ?? [],
+                Authors = book.AuthorNames?.Where(value => !string.IsNullOrWhiteSpace(value)).ToArray() ?? [],
                 PublishedYear = book.FirstPublishYear,
-                Categories = book.Subjects ?? [],
-                Url = $"https://openlibrary.org{book.Key}"
+                Categories = book.Subjects?.Where(value => !string.IsNullOrWhiteSpace(value)).ToArray() ?? [],
+                Url = book.Key!.StartsWith("/works/", StringComparison.Ordinal)
+                    ? $"https://openlibrary.org{book.Key}"
+                    : $"https://openlibrary.org/works/{Uri.EscapeDataString(book.Key)}"
             })
             .ToList();
     }
@@ -57,7 +60,7 @@ public sealed class OpenLibraryProvider : IBookProvider
     private sealed class OpenLibraryResponse
     {
         [JsonPropertyName("docs")]
-        public List<OpenLibraryBook> Docs { get; init; } = [];
+        public List<OpenLibraryBook?>? Docs { get; init; }
     }
 
     private sealed class OpenLibraryBook
