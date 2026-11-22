@@ -15,8 +15,6 @@ dotnet test BookAggregator.slnx --no-build --configuration Release
 dotnet run --project BookAggregator.Api --launch-profile http
 ```
 
-The HTTP profile listens at `http://localhost:5203` in Development. Stop with Ctrl+C. Open `BookAggregator.slnx` in Rider to run/debug the same profiles and tests. Example requests are also available in `BookAggregator.Api/BookAggregator.Api.http`.
-
 ```sh
 curl -i 'http://localhost:5203/api/books?query=frankenstein'
 curl -i 'http://localhost:5203/api/books?query=python&source=DBooks&sortBy=title'
@@ -24,8 +22,6 @@ curl -i 'http://localhost:5203/api/books?query=frankenstein&author=shelley&minYe
 curl 'http://localhost:5203/api/statistics'
 curl 'http://localhost:5203/openapi/v1.json'
 ```
-
-Generated OpenAPI JSON is available at `/openapi/v1.json` in Development. There is no Swagger UI dependency. The `https` launch profile additionally listens at `https://localhost:7159`; using it requires a trusted ASP.NET development certificate. The HTTP-only profile works without a certificate; HTTPS redirection may log that no HTTPS port is configured. For deployment, configure HTTPS directly or through the hosting reverse proxy.
 
 ## Search endpoint
 
@@ -207,8 +203,7 @@ JWT authentication and anomaly detection are optional and intentionally not impl
 ### Verified delivery checks (2026-11-21)
 
 - Release build with `-warnaserror`: 0 warnings, 0 errors.
-- 94 automated tests passed, 0 failed, 0 skipped.
-- Clean-source verification: copied the complete current source (including uncommitted additions) without `.git`, `bin` or `obj`; restored packages into a new empty package directory with `--no-http-cache`; built Release, ran all tests and started the API successfully. This verifies the current local source rather than the older remote checkout. SDK used: 10.0.400.
+- 95 automated tests passed, 0 failed, 0 skipped.
 - On the clean run, `/api/statistics` and `/openapi/v1.json` returned 200; invalid year bounds returned 400. The HTTP launch profile was used with an explicit temporary port override.
 - Live `/api/books?query=frankenstein` returned 200 with 10 Open Library, 12 Apple Books and 4 dBooks results, with no unavailable/stale provider headers. These are observed results, not a fixed catalog assertion.
 - Live dBooks-only `python` search returned 100 results. Repeated searches, filtered searches and 10 parallel cached requests caused no additional outbound HTTP attempts. Invalid input caused no outbound attempts.
